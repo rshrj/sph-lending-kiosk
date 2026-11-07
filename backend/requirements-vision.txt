@@ -1,0 +1,1 @@
+ultralytics>=8.4   # pulls in torch; only needed with KIOSK_VISION set

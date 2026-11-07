@@ -20,7 +20,7 @@ the Qt app talks to it over HTTP/JSON. Interactive API docs: http://127.0.0.1:80
     backend/deploy.sh labels         # QR label sheet for all items → backend/labels.png
     backend/deploy.sh pin [NEW]      # show / set the staff PIN
 
-Env: `KIOSK_DB` (default `data/inventory.db`), `KIOSK_CAMERA` (Linux: `/dev/video0`, retried until plugged in; Mac: `off`), `KIOSK_STAFF_PIN` (else `data/staff_pin`).
+Env: `KIOSK_DB` (default `data/inventory.db`), `KIOSK_CAMERA` (Linux: `/dev/video0`, retried until plugged in; Mac: `off`), `KIOSK_STAFF_PIN` (else `staff_pin` next to the DB), `KIOSK_SEED` (seed file for an empty DB, default `kiosk_backend/seed.json`), `KIOSK_VISION` / `KIOSK_VISION_CONF` (see Vision), `KIOSK_DATASET` (teach-mode photos, default `data/dataset`).
 
 ## API
 
@@ -37,6 +37,7 @@ Env: `KIOSK_DB` (default `data/inventory.db`), `KIOSK_CAMERA` (Linux: `/dev/vide
 | `GET /loans` | open loans with full names (staff: `X-Staff-Pin`) |
 | `POST /admin/reset` | reseed (staff: `X-Staff-Pin`) |
 | `POST /staff/unlock {pin}` | check the staff PIN |
+| `GET /teach/status` · `POST /teach/background` · `POST /teach/capture {label}` · `POST /teach/undo` | teach mode: collect training photos (staff) |
 
 Errors are `{"error": "...", "problems": [{item_id, name, reason}]}`; the message is UI-ready.
 
@@ -77,6 +78,39 @@ i.e. ~2 px/mm on the tray. OpenCV needed ~5 px/module and still missed rotated c
 least ~2 modules of white around each code. The printed sheet is `external/labels_test_outline.pdf`;
 `python -m kiosk_backend.labels` makes plain fallback labels from the database.
 
-## Vision (stub)
+## Vision
 
-`kiosk_backend/vision.py` — implement `detect(image) -> list[Detection]` and set `ENABLED = True`.
+`kiosk_backend/vision.py` runs a YOLO detector (Ultralytics) on every `/identify` frame. Off by default
+(the base install has no torch); `KIOSK_VISION` names the model. Class names, lower-cased with `_` for
+spaces, must equal `items.vision_label`; hits for kinds we don't lend (`person`, ...) are dropped.
+
+    uv pip install -p .venv -r requirements-vision.txt     # ultralytics + torch
+
+    # Try it with everyday objects: COCO-pretrained model + a basket of COCO things (phone, bottle, cup, ...)
+    KIOSK_VISION=yolo26n.pt KIOSK_SEED=kiosk_backend/seed_everyday.json KIOSK_CAMERA=0 \
+      KIOSK_DB=/tmp/everyday.db .venv/bin/uvicorn kiosk_backend.app:app
+
+`yolo26n.pt` downloads on first use (~5 MB, into the working directory; `*.pt` is gitignored). The seed only
+applies to an empty DB, hence the separate `KIOSK_DB`. Its tags are DAIM-101… so *Add by hand* still works.
+`KIOSK_VISION_CONF` (default 0.4) is the minimum confidence.
+
+### Teaching it your own items
+
+The stock model only knows COCO's 80 everyday kinds. For anything else, fine-tune it on photos of your items:
+
+1. **Collect** in the kiosk: staff panel → *Teach the camera*. Photograph the empty tray, pick a kind, press
+   *Start*, put one item on the tray and take your hand away; then keep moving or turning it. A photo is saved
+   each time the picture is still and the item has moved, and it is labelled automatically: the box is whatever
+   differs from the empty tray (`teach.py`), so one item at a time, and retake the empty tray if the light
+   changes. Aim for 30+ photos per kind. They go to `data/dataset/<vision_label>/` (gitignored).
+2. **Train** on a computer, not the Pi (minutes on a Mac's GPU, hours on a Pi):
+
+       .venv/bin/python tools/train.py              # --epochs 30 for a quick one, --dry-run to just build the dataset
+
+   It starts from `yolo26n.pt`, keeps a stable set of photos aside for checking, and installs the result as
+   `data/models/current.pt` only if it scores at least as well as the model already there (or the kinds changed;
+   `--force` overrides). Metrics go to `data/models/current.json`.
+3. **Use** it: run the backend with `KIOSK_VISION=data/models/current.pt`. A model given as a path is watched,
+   so later retrains are picked up within seconds without a restart (and until the first exists, vision is off).
+
+The fine-tuned model knows only your kinds (COCO is forgotten), which also means no more `person` noise.

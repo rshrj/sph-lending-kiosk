@@ -1,4 +1,4 @@
-"""What's on the tray? QR labels (exact unit) + vision model (kind of item, stubbed for now)."""
+"""What's on the tray? QR labels (exact unit) + vision model (kind of item)."""
 
 import logging
 import re
@@ -84,9 +84,12 @@ def identify(conn, image: np.ndarray) -> dict:
         })
 
     for d in vision.detect(image):
+        units = inventory.find_by_vision_label(conn, d.label)  # every unit of that kind
+        if not units:
+            continue  # a kind we don't lend (people, laptops, ...): not worth reporting
         detections.append({
             "method": "vision", "label": d.label, "confidence": round(d.confidence, 3), "bbox": d.bbox,
-            "items": inventory.find_by_vision_label(conn, d.label),  # every unit of that kind
+            "items": units,
         })
 
     _log_change(detections, (time.perf_counter() - t0) * 1000)

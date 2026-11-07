@@ -3,13 +3,15 @@ import QtQuick
 import QtQuick.Layouts
 import Kiosk
 
-// Hidden staff panel (long-press the SPH logo): health, open loans, demo reset, quit.
+// Hidden staff panel (long-press the SPH logo): health, open loans, teach the camera, demo reset, quit.
 // Locked behind the staff PIN (backend/deploy.sh pin); the backend checks it and also
 // requires it (X-Staff-Pin) for the loans list and the reset. Closing it locks it again.
 Modal {
     id: modal
-    title: unlocked ? "Staff" : "Staff access"
-    panelWidth: unlocked ? 900 : 620
+    title: !unlocked ? "Staff access" : view === "teach" ? "Teach the camera" : "Staff"
+    panelWidth: !unlocked ? 620 : view === "teach" ? 980 : 900
+    property string view: "home"       // home | teach
+    property alias teach: teachPanel   // for the screenshot tour
     property var openLoans: []
     property bool unlocked: false
     property string digits: ""
@@ -22,6 +24,8 @@ Modal {
     function lock() {
         unlocked = false; digits = ""; error = ""; checking = false
         openLoans = []
+        view = "home"
+        teachPanel.reset()
         Backend.staffPin = ""
     }
     function unlock(pin) {
@@ -105,9 +109,19 @@ Modal {
         Text { text: st.value; Layout.fillWidth: true; elide: Text.ElideRight; font.family: Theme.font; font.pixelSize: 15; color: Theme.textDim }
     }
 
+    // ---- unlocked: teach the camera ------------------------------------------------------
+    TeachPanel {
+        id: teachPanel
+        visible: modal.unlocked && modal.view === "teach"
+        active: visible && modal.open
+        Layout.fillWidth: true
+        Layout.preferredHeight: implicitHeight
+        onBack: { modal.view = "home"; modal.refresh() }
+    }
+
     // ---- unlocked -------------------------------------------------------------------
     RowLayout {
-        visible: modal.unlocked
+        visible: modal.unlocked && modal.view === "home"
         Layout.fillWidth: true
         spacing: 28
 
@@ -119,8 +133,16 @@ Modal {
             Status { label: "Server"; good: Backend.online; value: (Backend.online ? "online · " : "offline · ") + Backend.baseUrl }
             Status { label: "Camera"; good: Backend.cameraReady; value: Backend.cameraReady ? Backend.cameraDevice : (Backend.cameraDevice || "n/a") + " · not ready" }
             Status { label: "Card reader"; good: Rfid.ready; value: Rfid.ready ? Rfid.readerInfo : Rfid.status }
-            Status { label: "Vision"; good: Tray.visionEnabled; value: Tray.visionEnabled ? "model on" : "stub (QR labels only)" }
+            Status { label: "Vision"; good: Tray.visionEnabled; value: Tray.visionEnabled ? "model on" : "off (QR labels only)" }
             Item { implicitHeight: 6 }
+            KButton {
+                Layout.fillWidth: true
+                compact: true
+                kind: "secondary"
+                iconPath: Icons.camera
+                text: "Teach the camera"
+                onClicked: { console.info("flow: staff opened teach mode"); modal.view = "teach" }
+            }
             HoldButton {
                 Layout.fillWidth: true
                 text: "Hold to reset the demo"

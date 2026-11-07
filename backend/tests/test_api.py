@@ -1,26 +1,7 @@
-import os
-
 import cv2
 import numpy as np
-import pytest
-
-os.environ["KIOSK_CAMERA"] = "off"
-
 
 STAFF = {"X-Staff-Pin": "4711"}
-
-
-@pytest.fixture
-def client(tmp_path, monkeypatch):
-    from kiosk_backend import db, security
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
-    monkeypatch.setenv("KIOSK_STAFF_PIN", "4711")
-    security.legi_throttle.clear()
-    security.staff_throttle.clear()
-    from fastapi.testclient import TestClient
-    from kiosk_backend.app import app
-    with TestClient(app) as c:
-        yield c
 
 
 def ids(client, *tags):
@@ -109,6 +90,37 @@ def test_identify_small_rotated_labels(client):
     assert res["qr_decoder"] == "zxing-cpp"
     assert sorted(d["code"] for d in res["detections"]) == [f"DAIM-00{i}" for i in range(1, 8)]
     assert all(d["items"] for d in res["detections"])
+
+
+def test_identify_vision(client, monkeypatch):
+    # Vision names the kind: every unit with that vision_label; kinds we don't lend are dropped.
+    from kiosk_backend import vision
+    hits = [vision.Detection("robot_wheel", 0.9, (10, 20, 30, 40)), vision.Detection("person", 0.95, (0, 0, 99, 99))]
+    monkeypatch.setattr(vision, "detect", lambda img: hits)
+    res = post_image(client, np.full((480, 640, 3), 255, np.uint8))
+    assert [(d["method"], d["label"], d["bbox"]) for d in res["detections"]] == [("vision", "robot_wheel", [10, 20, 30, 40])]
+    assert [i["asset_tag"] for i in res["detections"][0]["items"]] == ["DAIM-005"]
+
+
+def test_vision_label_for():
+    from kiosk_backend.vision import label_for
+    assert label_for("cell phone") == "cell_phone" and label_for(" Robot Wheel ") == "robot_wheel"
+
+
+def test_everyday_seed_is_valid(tmp_path):
+    import json
+    from kiosk_backend import db
+    path = db.PKG / "seed_everyday.json"
+    conn = db.connect(tmp_path / "e.db")
+    conn.executescript((db.PKG / "schema.sql").read_text())
+    orig, db.SEED_PATH = db.SEED_PATH, path
+    try:
+        db.seed(conn)
+    finally:
+        db.SEED_PATH = orig
+    n = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+    assert n == len(json.loads(path.read_text())["items"]) > 0
+    assert conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0   # default mock users
 
 
 def test_tag_lookup_is_lenient(client):
