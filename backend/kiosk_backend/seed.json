@@ -1,0 +1,18 @@
+{
+  "users": [
+    {"legi": "21-912-345", "name": "Anna Keller", "email": "akeller@student.ethz.ch", "role": "student"},
+    {"legi": "22-845-102", "name": "Luca Bernasconi", "email": "lbernasc@student.ethz.ch", "role": "student"},
+    {"legi": "20-731-998", "name": "Mei Tanaka", "email": "mtanaka@student.ethz.ch", "role": "student"},
+    {"legi": "23-104-577", "name": "Jonas Weber", "email": "jweber@student.ethz.ch", "role": "student"},
+    {"legi": "19-660-241", "name": "Sara Rossi", "email": "srossi@ethz.ch", "role": "staff"}
+  ],
+  "items": [
+    {"asset_tag": "DAIM-001", "name": "Swivel caster wheel", "category": "mechanical", "vision_label": "caster_wheel", "location": "Makerspace shelf M1", "loan_days": 14, "notes": "Rubber wheel, 4-hole mounting plate"},
+    {"asset_tag": "DAIM-002", "name": "Motor shield", "category": "electronics", "vision_label": "motor_shield", "location": "Makerspace bin E1", "loan_days": 14, "notes": "Deek-Robot, Arduino Uno shield, 2-ch DC"},
+    {"asset_tag": "DAIM-003", "name": "DC power adapter", "category": "power", "vision_label": "power_adapter", "location": "Makerspace bin P1", "loan_days": 7, "notes": "EU wall plug, barrel jack"},
+    {"asset_tag": "DAIM-004", "name": "3-pin sensor cable", "category": "cables", "vision_label": "sensor_cable", "location": "Makerspace bin C1", "loan_days": 14, "notes": "Digilent 2.54 mm 3P to PH2.0 3P (763151-01)"},
+    {"asset_tag": "DAIM-005", "name": "Robot wheel", "category": "mechanical", "vision_label": "robot_wheel", "location": "Makerspace shelf M1", "loan_days": 14, "notes": "Yellow rim, rubber tyre (TT motor)"},
+    {"asset_tag": "DAIM-006", "name": "IR range sensor kit", "category": "electronics", "vision_label": "ir_range_sensor", "location": "Makerspace bin E2", "loan_days": 14, "notes": "Sensor + 3-wire cable (240-037)"},
+    {"asset_tag": "DAIM-007", "name": "USB cable A to B", "category": "cables", "vision_label": "usb_cable_ab", "location": "Makerspace bin C1", "loan_days": 7, "notes": "1.8 m, Maxxtro (125-11-254)"}
+  ]
+}

@@ -1,0 +1,31 @@
+#!/bin/sh
+# Start (or restart) the SPH kiosk on the Pi's screen as the systemd --user unit "sph-kiosk".
+# Used by the desktop icon, the app menu entry, autostart and deploy.sh run, so there is only
+# ever one kiosk, its logs are in the journal (sudo journalctl _SYSTEMD_USER_UNIT=sph-kiosk.service)
+# and a crash restarts it. Quitting from the staff panel exits cleanly and stays on the desktop.
+#
+#   sph-kiosk-launch [args]      default args: --kiosk
+set -eu
+UNIT=sph-kiosk
+[ $# -gt 0 ] || set -- --kiosk
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    WAYLAND_DISPLAY=$(ls "$XDG_RUNTIME_DIR" 2>/dev/null | grep -E '^wayland-[0-9]+$' | head -1 || true)
+fi
+if [ -z "$WAYLAND_DISPLAY" ]; then
+    echo "No Wayland session for $(id -un). Log in on the Pi's screen first." >&2
+    exit 1
+fi
+
+# Both want the whole screen: stop a running kiosk and the old demo app first.
+for u in "$UNIT" kiosk-lab; do
+    systemctl --user stop "$u.service" 2>/dev/null || true
+    systemctl --user reset-failed "$u.service" 2>/dev/null || true
+done
+
+exec systemd-run --user --quiet --unit="$UNIT" --collect \
+    -p Restart=on-failure -p RestartSec=2 \
+    -E XDG_RUNTIME_DIR -E WAYLAND_DISPLAY="$WAYLAND_DISPLAY" -E QT_QPA_PLATFORM=wayland \
+    -E QT_MESSAGE_PATTERN='%{if-warning}WARNING %{endif}%{if-critical}CRITICAL %{endif}%{if-fatal}FATAL %{endif}%{message}' \
+    "$HOME/.local/bin/sph-kiosk" "$@"

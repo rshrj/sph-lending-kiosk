@@ -1,0 +1,30 @@
+# Production-style kiosk: no desktop, Qt draws straight to the display via KMS/DRM.
+# Fastest boot and no compositor, but wayvnc can't see it (VNC needs labwc).
+#
+# Install (on the Pi):
+#   sudo cp kiosk-lab-eglfs.service /etc/systemd/system/
+#   sudo systemctl disable lightdm      # stop the desktop from taking the display
+#   sudo systemctl enable --now kiosk-lab-eglfs
+# Undo: sudo systemctl disable --now kiosk-lab-eglfs && sudo systemctl enable --now lightdm
+
+[Unit]
+Description=Kiosk Lab (EGLFS, full screen)
+After=systemd-user-sessions.service systemd-udev-settle.service
+Conflicts=getty@tty1.service lightdm.service
+
+[Service]
+User=rishi
+Group=rishi
+SupplementaryGroups=video render input
+WorkingDirectory=/home/rishi
+Environment=QT_QPA_PLATFORM=eglfs
+Environment=QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+Environment=QT_QPA_EGLFS_KMS_CONFIG=/home/rishi/kiosk-lab/deploy/eglfs-kms.json
+Environment=QT_QPA_EGLFS_HIDECURSOR=1
+Environment=XDG_RUNTIME_DIR=/run/user/1001
+ExecStart=/home/rishi/.local/bin/kiosk-lab --kiosk
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

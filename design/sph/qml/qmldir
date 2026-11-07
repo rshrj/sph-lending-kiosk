@@ -1,0 +1,8 @@
+singleton Theme 1.0 Theme.qml
+SkewButton 1.0 SkewButton.qml
+TextLink 1.0 TextLink.qml
+Chevron 1.0 Chevron.qml
+BrushText 1.0 BrushText.qml
+OutlineCard 1.0 OutlineCard.qml
+ListRow 1.0 ListRow.qml
+ColorBand 1.0 ColorBand.qml

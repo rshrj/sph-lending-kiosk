@@ -1,0 +1,17 @@
+# build output, local tooling
+build/
+.DS_Store
+.cache/
+__pycache__/
+.pytest_cache/
+.venv/
+
+# runtime data: inventory DB, staff PIN (live on the Pi only)
+backend/data/
+
+# generated
+backend/labels.png
+
+# commercial fonts: not redistributable (see fonts/README.md)
+ProximaNova-*.ttf
+AlternateGothicNo2*.ttf
