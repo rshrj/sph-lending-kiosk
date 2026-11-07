@@ -24,7 +24,8 @@ SPH look (design/sph/), light mode only. Talks to the inventory server in `backe
 - **Server down** → "Kiosk temporarily offline" (after 4 s, so blips don't flash).
 - **Staff panel**: long-press the SPH logo for 1.5 s (F3 on the Mac), then the staff PIN
   (`backend/deploy.sh pin` shows/sets it). It shows server, camera, reader and vision status,
-  open loans, *hold to reset the demo* and *hold to quit*. It locks again when closed or idle.
+  open loans, *teach the camera* (collect training photos for the vision model, see
+  backend/README.md), *hold to reset the demo* and *hold to quit*. It locks again when closed or idle.
 - **Privacy (public screen)**: names only as "Anna K.", never a Legi number; card UIDs are not
   logged; wrong Legi numbers are throttled server-side (5 → 1 min pause).
 
@@ -67,7 +68,7 @@ after a crash. *Hold to quit* in the staff panel leaves you on the desktop.
                 RfidService + rfid/ (RC522 driver), IdleMonitor
     qml/        Main (shell + flow), Theme (SPH tokens), Session (who's signed in),
                 Tray (what's on the tray + scanning), Fmt, Notify, AttractScreen
-    qml/screens Start, SignIn, Tray, Confirm, Done + modals AddByTag, MyLoans, StaffPanel
+    qml/screens Start, SignIn, Tray, Confirm, Done + modals AddByTag, MyLoans, StaffPanel (+ TeachPanel)
     qml/components  KButton (skewed SPH button), Header (crumbs), ItemRow, CameraView, Modal, …
                     Keypad, SwipeToConfirm, SuccessMark, CountdownRing, TapPrompt, Toast, HoldButton
                     come from Kiosk Lab

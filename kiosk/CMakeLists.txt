@@ -85,6 +85,7 @@ qt_add_qml_module(sph-kiosk
         qml/screens/AddByTag.qml
         qml/screens/MyLoans.qml
         qml/screens/StaffPanel.qml
+        qml/screens/TeachPanel.qml
     RESOURCES
         ${BRAND_FONTS}
         assets/sph/sph-logo.svg

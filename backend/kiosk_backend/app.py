@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
-from . import db, identify as ident, inventory, security
+from . import db, identify as ident, inventory, security, teach, vision
 from .camera import Camera
 from .inventory import InventoryError
 
@@ -19,6 +19,7 @@ from .inventory import InventoryError
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("kiosk")
 camera = Camera()
+teacher = teach.Teacher()
 
 
 @asynccontextmanager
@@ -31,10 +32,10 @@ async def lifespan(app: FastAPI):
     n_items = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
     n_loans = conn.execute("SELECT COUNT(*) FROM loans WHERE returned_at IS NULL").fetchone()[0]
     conn.close()
-    ident.vision.load()
+    vision.load()
     log.info("backend %s up: db %s (%d items, %d open loans), camera %s, QR decoder %s, vision %s",
              app.version, db.DB_PATH, n_items, n_loans, camera.device, ident.decoder_name(),
-             "on" if ident.vision.ENABLED else "stub")
+             "on" if vision.ENABLED else "off")
     camera.start()
     yield
     camera.stop()
@@ -61,7 +62,7 @@ async def inventory_error(request: Request, e: InventoryError):
 
 
 # Polled every second or so by the UI; logged only when slow or failing.
-_QUIET = {"/health", "/camera/frame.jpg", "/identify"}
+_QUIET = {"/health", "/camera/frame.jpg", "/identify", "/teach/capture"}
 
 
 @app.middleware("http")
@@ -227,3 +228,67 @@ def admin_reset(conn=Depends(get_conn)):
     log.warning("inventory reset (all loans cleared, reseeded)")
     db.reset(conn)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- teach mode (staff)
+# Collect labelled photos for training the vision model; see teach.py and tools/train.py.
+
+def _kinds(conn) -> dict[str, list[str]]:
+    """vision_label -> item names, for every kind in the inventory."""
+    kinds: dict[str, list[str]] = {}
+    for r in conn.execute("SELECT vision_label, name FROM items WHERE vision_label IS NOT NULL ORDER BY vision_label, asset_tag"):
+        names = kinds.setdefault(r["vision_label"], [])
+        if r["name"] not in names:
+            names.append(r["name"])
+    return kinds
+
+
+@app.get("/teach/status", dependencies=[Depends(security.require_staff)])
+def teach_status(conn=Depends(get_conn)):
+    counts = teacher.counts()
+    model = vision.info()
+    return {
+        "background": teacher.has_background,
+        "empty_photos": counts.get(teach.EMPTY, 0),
+        "kinds": [{"label": label, "names": names, "count": counts.get(label, 0), "in_model": label in model["labels"]}
+                  for label, names in _kinds(conn).items()],
+        "vision": model,
+    }
+
+
+@app.post("/teach/background", dependencies=[Depends(security.require_staff)])
+def teach_background():
+    """Photograph the empty tray (the reference every item photo is compared against)."""
+    frames = []
+    for _ in range(5):
+        frames.append(_camera_frame())
+        time.sleep(0.08)
+    teacher.set_background(frames)
+    log.info("teach: empty tray photographed")
+    return {"ok": True}
+
+
+class TeachCapture(BaseModel):
+    label: str
+
+
+@app.post("/teach/capture", dependencies=[Depends(security.require_staff)])
+def teach_capture(body: TeachCapture, conn=Depends(get_conn)):
+    """Called about every 0.7 s while recording; saves a photo when the item is still and has moved."""
+    if not teach.valid_label(body.label) or body.label not in _kinds(conn):
+        raise InventoryError(422, f"Unknown kind {body.label!r}")
+    img = _camera_frame()
+    r = teacher.capture(body.label, img)
+    if r.status == "saved":
+        log.info("teach: %s photo %d", body.label, r.count)
+    h, w = img.shape[:2]
+    return {"status": r.status, "message": r.message, "bbox": r.bbox, "count": r.count, "image_size": [w, h]}
+
+
+@app.post("/teach/undo", dependencies=[Depends(security.require_staff)])
+def teach_undo():
+    label = teacher.undo()
+    if label is None:
+        raise InventoryError(409, "Nothing to undo")
+    log.info("teach: removed the last %s photo", label)
+    return {"label": label, "count": teacher.counts().get(label, 0)}

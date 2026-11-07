@@ -13,6 +13,7 @@ Item {
     property bool removable: false
     property bool last: false
     property string trailing: ""     // right-aligned text instead of the × (e.g. a due date)
+    property string markIcon: ""     // overrides the tone's icon in the status square
     signal removeClicked()
 
     readonly property color toneColor: tone === "ok" ? Theme.green : tone === "warn" ? Theme.yellow
@@ -28,7 +29,7 @@ Item {
         border.width: 2; border.color: Theme.ink
         Icon {
             anchors.centerIn: parent
-            path: row.tone === "ok" ? Icons.check : row.tone === "bad" ? Icons.close : row.tone === "warn" ? Icons.clock : Icons.qr
+            path: row.markIcon ? row.markIcon : row.tone === "ok" ? Icons.check : row.tone === "bad" ? Icons.close : row.tone === "warn" ? Icons.clock : Icons.qr
             size: 16; strokeWidth: 2.6
             color: Theme.ink
         }

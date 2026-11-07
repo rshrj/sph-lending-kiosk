@@ -331,6 +331,11 @@ ApplicationWindow {
             { name: "13-my-loans",      run: () => myLoans.open = true },
             { name: "14-staff-locked",  run: () => { myLoans.close(); staff.openFresh(); staff.digits = "1234" } },
             { name: "14-staff",         wait: 1200, run: () => staff.unlock(win.tourStaffPin) },
+            { name: "14b-teach",        wait: 1500, run: () => staff.view = "teach" },
+            // With a camera: photograph the tray, then record whatever is on it (writes to the teach dataset).
+            { name: "teach-empty",      skipShot: true, wait: 1500, run: () => { if (Backend.cameraReady) staff.teach.photographEmpty() } },
+            { name: "14c-teach-recording", wait: 5000, run: () => { if (Backend.cameraReady) staff.teach.recording = true } },
+            { name: "teach-stop",       skipShot: true, wait: 300, run: () => { staff.teach.stop(); staff.view = "home" } },
             { name: "15-offline",       wait: 5500, run: () => { staff.close(); win.reset(); win.realBackend = Backend.baseUrl; Backend.baseUrl = "http://127.0.0.1:9" } },
             { name: "16-attract",       wait: 1500, run: () => { Backend.baseUrl = win.realBackend; IdleMonitor.goIdle() } },
             { name: "reset-end",        skipShot: true, wait: 600, run: () => win.tourReset() }
