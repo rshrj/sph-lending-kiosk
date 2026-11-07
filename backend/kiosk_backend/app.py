@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
     n_items = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
     n_loans = conn.execute("SELECT COUNT(*) FROM loans WHERE returned_at IS NULL").fetchone()[0]
     conn.close()
+    ident.vision.load()
     log.info("backend %s up: db %s (%d items, %d open loans), camera %s, QR decoder %s, vision %s",
              app.version, db.DB_PATH, n_items, n_loans, camera.device, ident.decoder_name(),
              "on" if ident.vision.ENABLED else "stub")

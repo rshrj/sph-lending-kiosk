@@ -15,3 +15,10 @@ backend/labels.png
 # commercial fonts: not redistributable (see fonts/README.md)
 ProximaNova-*.ttf
 AlternateGothicNo2*.ttf
+
+# screenshots / debug bundles pulled off the device
+pi-artifacts/
+
+# model weights + training runs (Ultralytics)
+*.pt
+runs/

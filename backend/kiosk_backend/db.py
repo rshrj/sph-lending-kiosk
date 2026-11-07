@@ -9,6 +9,8 @@ from pathlib import Path
 
 PKG = Path(__file__).parent
 DB_PATH = Path(os.environ.get("KIOSK_DB", PKG.parent / "data" / "inventory.db"))
+# Users + items to seed an empty database with; seed_everyday.json is a basket of COCO objects.
+SEED_PATH = Path(os.environ.get("KIOSK_SEED", PKG / "seed.json"))
 
 
 def now() -> str:
@@ -57,7 +59,9 @@ def init(conn: sqlite3.Connection, seed_if_empty: bool = True) -> None:
 
 
 def seed(conn: sqlite3.Connection) -> None:
-    data = json.loads((PKG / "seed.json").read_text())
+    data = json.loads(SEED_PATH.read_text())
+    if "users" not in data:  # a basket-only seed file keeps the default (mock) users
+        data["users"] = json.loads((PKG / "seed.json").read_text())["users"]
     conn.execute("BEGIN")
     for u in data["users"]:
         conn.execute(

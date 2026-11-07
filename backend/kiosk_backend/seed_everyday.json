@@ -1,0 +1,13 @@
+{
+  "items": [
+    {"asset_tag": "DAIM-101", "name": "Phone (test unit A)", "category": "electronics", "vision_label": "cell_phone", "location": "Shelf E1", "loan_days": 7, "notes": "Any phone held up to the camera"},
+    {"asset_tag": "DAIM-102", "name": "Phone (test unit B)", "category": "electronics", "vision_label": "cell_phone", "location": "Shelf E1", "loan_days": 7, "notes": "Second unit: vision can't tell A from B, QR can"},
+    {"asset_tag": "DAIM-103", "name": "Water bottle", "category": "misc", "vision_label": "bottle", "location": "Shelf M1", "loan_days": 14},
+    {"asset_tag": "DAIM-104", "name": "Mug", "category": "misc", "vision_label": "cup", "location": "Shelf M1", "loan_days": 14},
+    {"asset_tag": "DAIM-105", "name": "Book", "category": "misc", "vision_label": "book", "location": "Shelf B1", "loan_days": 28},
+    {"asset_tag": "DAIM-106", "name": "Scissors", "category": "tools", "vision_label": "scissors", "location": "Bin T1", "loan_days": 7},
+    {"asset_tag": "DAIM-107", "name": "Computer mouse", "category": "electronics", "vision_label": "mouse", "location": "Bin E2", "loan_days": 14},
+    {"asset_tag": "DAIM-108", "name": "Remote control", "category": "electronics", "vision_label": "remote", "location": "Bin E2", "loan_days": 14},
+    {"asset_tag": "DAIM-109", "name": "Banana", "category": "snacks", "vision_label": "banana", "location": "Fruit bowl", "loan_days": 1, "notes": "Due back tomorrow, ideally uneaten"}
+  ]
+}

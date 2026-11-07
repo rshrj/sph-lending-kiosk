@@ -111,6 +111,37 @@ def test_identify_small_rotated_labels(client):
     assert all(d["items"] for d in res["detections"])
 
 
+def test_identify_vision(client, monkeypatch):
+    # Vision names the kind: every unit with that vision_label; kinds we don't lend are dropped.
+    from kiosk_backend import vision
+    hits = [vision.Detection("robot_wheel", 0.9, (10, 20, 30, 40)), vision.Detection("person", 0.95, (0, 0, 99, 99))]
+    monkeypatch.setattr(vision, "detect", lambda img: hits)
+    res = post_image(client, np.full((480, 640, 3), 255, np.uint8))
+    assert [(d["method"], d["label"], d["bbox"]) for d in res["detections"]] == [("vision", "robot_wheel", [10, 20, 30, 40])]
+    assert [i["asset_tag"] for i in res["detections"][0]["items"]] == ["DAIM-005"]
+
+
+def test_vision_label_for():
+    from kiosk_backend.vision import label_for
+    assert label_for("cell phone") == "cell_phone" and label_for(" Robot Wheel ") == "robot_wheel"
+
+
+def test_everyday_seed_is_valid(tmp_path):
+    import json
+    from kiosk_backend import db
+    path = db.PKG / "seed_everyday.json"
+    conn = db.connect(tmp_path / "e.db")
+    conn.executescript((db.PKG / "schema.sql").read_text())
+    orig, db.SEED_PATH = db.SEED_PATH, path
+    try:
+        db.seed(conn)
+    finally:
+        db.SEED_PATH = orig
+    n = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+    assert n == len(json.loads(path.read_text())["items"]) > 0
+    assert conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0   # default mock users
+
+
 def test_tag_lookup_is_lenient(client):
     for t in ("DAIM-007", "daim-007", " DAIM-7 ", "DAIM-0007"):
         r = client.get(f"/items/by-tag/{t}")
